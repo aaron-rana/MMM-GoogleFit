@@ -1,5 +1,20 @@
 "use strict";
 
+function el(tag, options) {
+  var result = document.createElement(tag);
+
+  options = options || {};
+  for (var key in options) {
+    result[key] = options[key];
+  }
+
+  return result;
+}
+
+function prettyPrint(n) {
+  return Number(n).toFixed(n < 10 ? 1 : 0) + "k";
+}
+
 Module.register("MMM-GoogleFit", {
 
   auth: undefined,
@@ -40,13 +55,10 @@ Module.register("MMM-GoogleFit", {
   },
 
   getDom: function() {
-    var wrapper = document.createElement("stats");
-    wrapper.className = "dimmed small";
+    var wrapper = el("stats", { className: "dimmed small" });
 
     if (this.config.displayHeader) {
-      var title =  document.createElement("header");
-      title.innerHTML = "Google Fit";
-      wrapper.appendChild(title);
+      wrapper.appendChild(el("header", { innerHTML: "Google Fit" }));
     }
 
     if (this.stats) {
@@ -54,7 +66,6 @@ Module.register("MMM-GoogleFit", {
       var steps = [];
       var dates = [];
       var hasWeights = false;
-      
 
       if (this.stats.bucket.length !== 7) {
         console.error("Google Fit data fetched does not match 7 days, layout might be incorrect. Data was trimmed.");
@@ -136,11 +147,21 @@ Module.register("MMM-GoogleFit", {
       var totalSize = this.config.chartWidth / numDays;
       var chartSize = totalSize * (1 - padding);
       var colors = this.config.colors;
+      //var table = el("table", { style: "width: auto" });
+      var table = el("table");
+      var row = el("tr");
+      var cell;
 
-      var series = [];
+      // Add in walking icon
+      if (this.config.useIcons) {
+        row.appendChild(el("td").appendChild(el("img", { src: this.file("icons/icons8-walking-20.png") })).parentElement);
+      }
+
       for (var i = 0; i < steps.length; i++) {
         var percent = steps[i] / this.config.stepGoal;
         var colorOffset = Math.floor(percent) % colors.length;
+
+        cell = el("td", { style: "padding-left: 5px; padding-right: 5px;" });
 
         // 5x more than the desired step count is the last color (red) and will stay that way
         if (percent > colors.length - 1) {
@@ -161,126 +182,90 @@ Module.register("MMM-GoogleFit", {
           }];
         }
 
-        series.push({
-          type: "pie",
-          innerSize: thickness + "%",
-          data: data,
-          size: chartSize,
-          center: [i * totalSize + 1, "50%"],
-          borderColor: null,
-        });
-      }
+        // Create chart canvas
+        var chart = el("div", { id: "google-fit-chart-" + i, style: "width: " + totalSize + "px; margin-left: auto; margin-right: auto" });
 
-      // Add in walking icon
-      if (this.config.useIcons) {
-        var label = document.createElement("div");
-        label.style.cssText = "float: left; width: " + totalSize + "px; text-align: center; line-height: 0px; padding-top: " + (totalSize / 2 - 10) + "px"; // 10 is 1/2 of 20px tall icon
-
-        var img = document.createElement("img");
-        img.src = this.file("icons/icons8-walking-20.png");
-
-        label.appendChild(img);
-        wrapper.appendChild(label);
-      }
-        
-      // Create chart canvas
-      var chart = document.createElement("div");
-      chart.id = "google-fit-chart";
-      chart.style.cssText = "float: right;";
-      
-      Highcharts.chart(chart, {
-        title: {
-          text: null
-        },
-        chart: {
-          width: this.config.chartWidth,
-          height: totalSize,
-          backgroundColor: null,
-          plotShadow: false,
-          margin: 0
-        },
-        plotOptions: {
-          pie: {
-            dataLabels: {
-              enabled: false
+        Highcharts.chart(chart, {
+          title: {
+            text: null
+          },
+          chart: {
+            width: totalSize,
+            height: totalSize,
+            backgroundColor: null,
+            plotShadow: false,
+            margin: 0
+          },
+          plotOptions: {
+            pie: {
+              dataLabels: {
+                enabled: false
+              }
             }
-          }
-        },
-        series: series,
-        credits: {
-          enabled: false
-        },
-      });
-        
-      // Append chart
-      wrapper.appendChild(chart);
+          },
+          series: [{
+            type: "pie",
+            innerSize: thickness + "%",
+            data: data,
+            size: chartSize,
+            center: ["50%", "50%"],
+            borderColor: null,
+          }],
+          credits: {
+            enabled: false
+          },
+        });
 
-      var clear = document.createElement("div");
-      clear.style.cssText = "clear: both;";
-      wrapper.appendChild(clear);
-
-      var labels = document.createElement("div");
-      labels.style.cssText = "float: right;";
-
-      for (var i = 0; i < weights.length; i++) {
-        hasWeights |= weights[i];
+        // Append chart
+        cell.appendChild(chart);
+        row.appendChild(cell);
       }
 
-      // Only show the scale icon if there are weights to be shown
-      if (hasWeights && this.config.useIcons) {
-        var label = document.createElement("div");
-        label.style.cssText = "float: left; width: " + totalSize + "px; font-size: " + this.config.fontSize + "px; text-align: center; padding-top: 4px";
+      table.appendChild(row);
 
-        var br = document.createElement("span");
-        br.innerHTML = "<br>" + (this.config.stepCountLabel ? "<br>" : "");
-        
-        var img = document.createElement("img");
-        img.src = this.file("icons/icons8-scale-20.png");
-
-        label.appendChild(br);
-        label.appendChild(img);
-        labels.appendChild(label);
-      }
-
+      var days = ["S", "M", "T", "W", "T", "F", "S"];
       if (this.config.startOnMonday) {
-        var days = ["M", "T", "W", "T", "F", "S", "S"];
-      } else {
-        var days = ["S", "M", "T", "W", "T", "F", "S"];
+        days.push(days.shift());
       }
 
-      for (var i = 0; i < numDays; i++) {
-        var label = document.createElement("div");
-        label.style.cssText = "float: left; width: " + totalSize + "px; font-size: " + this.config.fontSize + "px; text-align: center;";
-        label.innerHTML = days[i];
+      row = el("tr");
+      if (this.config.useIcons) {
+        row.appendChild(el("td"));
+      }
+      for (var i = 0; i < days.length; ++i) {
+        row.appendChild(el("td", { innerHTML: days[i], style: "text-align: center" }));
+      }
+      table.appendChild(row);
 
-        if (this.config.stepCountLabel && steps[i] > 0) {
-          var s = steps[i] / 1000;
-          s = Number(s).toFixed(s < 10 ? 1 : 0);
-
-          label.innerHTML += "<br>" + s + "k";
+      if (this.config.stepCountLabel) {
+        row = el("tr");
+        if (this.config.useIcons) {
+          row.appendChild(el("td"));
         }
-
-        if (weights[i]) {
-          label.innerHTML += "<br>" + weights[i];
+        for (var i = 0; i < steps.length; ++i) {
+          row.appendChild(el("td", { innerHTML: (steps[i] > 0) ? prettyPrint(steps[i] * 0.001) : "", style: "text-align: center" }));
         }
-
-        labels.appendChild(label);
+        table.appendChild(row);
       }
 
-      wrapper.appendChild(labels);
-          
-    } else if (this.code && !this.auth) {
-      var elem = document.createElement("span");
-      elem.innerHTML = "Please Visit: " + this.code.verification_url + "<br>" + "Code: " + this.code.user_code;
-      wrapper.appendChild(elem);
+      if (weights.some(w => w > 0)) {
+        row = el("tr");
+        if (this.config.useIcons) {
+          row.appendChild(el("td").appendChild(el("img", { src: this.file("icons/icons8-scale-20.png") })).parentElement);
+        }
+        for (var i = 0; i < numDays; i++) {
+          row.appendChild(el("td", { innerHTML: (weights[i] > 0) ? weights[i] : "", style: "text-align: center" }));
+        }
+        table.appendChild(row);
+      }
+
+      wrapper.appendChild(table);
     } else if (this.auth) {
-      var elem = document.createElement("span");
-      elem.innerHTML = "Authenticated, Loading Data...";
-      wrapper.appendChild(elem);
-    } else {
-      var error = document.createElement("span");
-      error.innerHTML = "Error Getting Auth<br>" + this.error;
-      wrapper.appendChild(error);
+      wrapper.appendChild(el("span", { innerHTML: "Authenticated, Loading Data..." }));
+    } else if (this.code) {
+      wrapper.appendChild(el("span", { innerHTML: "Please Visit: " + this.code.verification_url + "<br>" + "Code: " + this.code.user_code }));
+    } else if (this.error) {
+      wrapper.appendChild(el("span", { innerHTML: "Error Getting Auth<br>" + this.error }));
     }
 
     return wrapper;
