@@ -24,8 +24,7 @@ Module.register("MMM-GoogleFit", {
     updateInterval: 30, // minutes
     stepGoal: 10000,
     startOnMonday: false,
-    chartWidth: 300, // px
-    chartPadding: 0.2, // percent between 0-1, clamped in code
+    chartSize: 24, // px
     innerThickness: 0.8, // how much like a pie chart / doughnut, clamped in code
     fontSize: 18,
     stepCountLabel: false,
@@ -138,14 +137,9 @@ Module.register("MMM-GoogleFit", {
         console.log(dates);
       }
 
-      var min = 0.1;
-      var max = 0.9;
-      var t = Math.min(Math.max(this.config.chartPadding, 0), 1);
-      var padding = min * (1 - t) + max * t;
+      var chartSize = this.config.chartSize;
+      var totalSize = chartSize * 1.1;
       var thickness = Math.min(Math.max(this.config.innerThickness, 0), 1) * 100;
-
-      var totalSize = this.config.chartWidth / numDays;
-      var chartSize = totalSize * (1 - padding);
       var colors = this.config.colors;
       //var table = el("table", { style: "width: auto" });
       var table = el("table");
