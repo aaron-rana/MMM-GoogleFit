@@ -23,7 +23,6 @@ Module.register("MMM-GoogleFit", {
   defaults: {
     updateInterval: 30, // minutes
     stepGoal: 10000,
-    startOnMonday: false,
     chartSize: 24, // px
     innerThickness: 0.8, // how much like a pie chart / doughnut, clamped in code
     fontSize: 18,
@@ -64,6 +63,7 @@ Module.register("MMM-GoogleFit", {
       var weights = [];
       var steps = [];
       var dates = [];
+      var days = [];
       var hasWeights = false;
 
       if (this.stats.bucket.length !== 7) {
@@ -75,8 +75,10 @@ Module.register("MMM-GoogleFit", {
 
       for (var i = 0; i < this.stats.bucket.length; i++) {
         var bucket = this.stats.bucket[i];
+        var bucketDate = new Date(parseFloat(bucket.startTimeMillis));
 
-        dates.push(new Date(parseFloat(bucket.startTimeMillis)).toLocaleDateString());
+        dates.push(bucketDate.toLocaleDateString());
+        days.push(["S", "M", "T", "W", "T", "F", "S"][bucketDate.getDay()]);
 
         for (var j = 0; j < bucket.dataset.length; j++) {
           var data = bucket.dataset[j];
@@ -217,11 +219,6 @@ Module.register("MMM-GoogleFit", {
 
       table.appendChild(row);
 
-      var days = ["S", "M", "T", "W", "T", "F", "S"];
-      if (this.config.startOnMonday) {
-        days.push(days.shift());
-      }
-
       row = el("tr");
       if (this.config.useIcons) {
         row.appendChild(el("td"));
@@ -278,7 +275,16 @@ Module.register("MMM-GoogleFit", {
   },
 
   getStats: function () {
-    this.sendSocketNotification("UPDATE", this.config);
+    var config = Object.assign({}, this.config);
+    var startTime = new Date();
+
+    startTime.setHours(0, 0, 0, 0);
+    startTime.setDate(startTime.getDate() - 6);
+
+    config.startTimeMillis = startTime.getTime();
+    config.endTimeMillis = Date.now();
+
+    this.sendSocketNotification("UPDATE", config);
   },
 
   capitalize: function (s) {

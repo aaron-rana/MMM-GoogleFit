@@ -121,25 +121,13 @@ module.exports = NodeHelper.create({
 
     var now = new Date();
 
-    var startTime = new Date();
-    startTime.setDate(now.getDate() - now.getDay()); // get last sunday
-    startTime.setHours(0, 0, 0, 0);
-    
-    if (clientConfig.startOnMonday) { // start on monday instead
-      startTime.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    }
-
-    var endTime = new Date(startTime); // end sets month of start (Issue #9)
-    endTime.setDate(startTime.getDate() + 6);
-    endTime.setHours(23, 59, 59, 999);
-
     var req = {
       "aggregateBy": [{
         "dataSourceId": "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
       }],
       "bucketByTime": { "durationMillis": 86400000 }, // 1 day per bucket
-      "startTimeMillis": startTime.getTime(),
-      "endTimeMillis": endTime.getTime()
+      "startTimeMillis": clientConfig.startTimeMillis,
+      "endTimeMillis": clientConfig.endTimeMillis
     };
 
     if (clientConfig.displayWeight) {
