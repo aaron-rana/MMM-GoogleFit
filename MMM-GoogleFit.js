@@ -292,6 +292,10 @@ Module.register("MMM-GoogleFit", {
     return s.toLowerCase().replace(/\b./g, function (a) { return a.toUpperCase(); });
   },
 
+  notificationReceived: function(notification, payload, sender) {
+    // Do nothing
+  },
+
   socketNotificationReceived: function(notification, result) {
     if (notification === "AUTH_CODE_BODY") {
       this.code = result;
